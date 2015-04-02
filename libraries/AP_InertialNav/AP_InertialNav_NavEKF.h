@@ -17,7 +17,7 @@ class AP_InertialNav_NavEKF : public AP_InertialNav
 public:
     // Constructor
     AP_InertialNav_NavEKF(AP_AHRS_NavEKF &ahrs) :
-        AP_InertialNav(),
+        AP_InertialNav(ahrs),
         _haveabspos(false),
         _ahrs_ekf(ahrs)
         {}

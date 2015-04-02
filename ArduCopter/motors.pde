@@ -117,6 +117,9 @@ static bool init_arm_motors(bool arming_from_gcs)
     // disable cpu failsafe because initialising everything takes a while
     failsafe_disable();
 
+    // disable inertial nav errors temporarily
+    inertial_nav.ignore_next_error();
+
     // reset battery failsafe
     set_failsafe_battery(false);
 
@@ -155,6 +158,9 @@ static bool init_arm_motors(bool arming_from_gcs)
         }
         did_ground_start = true;
     }
+
+    // reset inertial nav alt to zero
+    inertial_nav.set_altitude(0.0f);
 
     // go back to normal AHRS gains
     ahrs.set_fast_gains(false);
@@ -680,11 +686,21 @@ static void init_disarm_motors()
 
     motors.armed(false);
 
+    // disable inertial nav errors temporarily
+    inertial_nav.ignore_next_error();
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    // save offsets if automatic offset learning is on
+    if (compass.learn_offsets_enabled()) {
+        compass.save_offsets();
+    }
+#else
     // save compass offsets learned by the EKF
     Vector3f magOffsets;
     if (ahrs.use_compass() && ahrs.getMagOffsets(magOffsets)) {
         compass.set_and_save_offsets(compass.get_primary(), magOffsets);
     }
+#endif
 
 #if AUTOTUNE_ENABLED == ENABLED
     // save auto tuned parameters

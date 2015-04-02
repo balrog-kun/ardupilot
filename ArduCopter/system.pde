@@ -89,6 +89,14 @@ static void init_ardupilot()
                          "\n\nFree RAM: %u\n"),
                         hal.util->available_memory());
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    /*
+      run the timer a bit slower on APM2 to reduce the interrupt load
+      on the CPU
+     */
+    hal.scheduler->set_timer_speed(500);
+#endif
+
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
     //
@@ -131,8 +139,12 @@ static void init_ardupilot()
     // init the GCS connected to the console
     gcs[0].setup_uart(serial_manager, AP_SerialManager::SerialProtocol_Console, 0);
 
-    // init telemetry port
+#if CONFIG_HAL_BOARD != HAL_BOARD_APM2
+    // we have a 2nd serial port for telemetry on all boards except
+    // APM2. We actually do have one on APM2 but it isn't necessary as
+    // a MUX is used
     gcs[1].setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 0);
+#endif
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     // setup serial port for telem2
@@ -173,6 +185,11 @@ static void init_ardupilot()
      */
     hal.scheduler->register_timer_failsafe(failsafe_check, 1000);
 
+ #if CONFIG_ADC == ENABLED
+    // begin filtering the ADC Gyros
+    apm1_adc.Init();           // APM ADC library initialization
+ #endif // CONFIG_ADC
+
     // Do GPS init
     gps.init(&DataFlash, serial_manager);
 
@@ -190,6 +207,9 @@ static void init_ardupilot()
 
     // init the optical flow sensor
     init_optflow();
+
+    // initialise inertial nav
+    inertial_nav.init();
 
 #if MOUNT == ENABLED
     // initialise camera mount
@@ -379,6 +399,18 @@ static void check_usb_mux(void)
 
     // the user has switched to/from the telemetry port
     ap.usb_connected = usb_check;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    // the APM2 has a MUX setup where the first serial port switches
+    // between USB and a TTL serial connection. When on USB we use
+    // SERIAL0_BAUD, but when connected as a TTL serial port we run it
+    // at SERIAL1_BAUD.
+    if (ap.usb_connected) {
+        serial_manager.set_console_baud(AP_SerialManager::SerialProtocol_Console, 0);
+    } else {
+        serial_manager.set_console_baud(AP_SerialManager::SerialProtocol_MAVLink, 0);
+    }
+#endif
 }
 
 // frsky_telemetry_send - sends telemetry data using frsky telemetry

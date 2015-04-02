@@ -40,8 +40,16 @@
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
+#ifdef CONFIG_APM_HARDWARE
+#error CONFIG_APM_HARDWARE option is deprecated! use CONFIG_HAL_BOARD instead
+#endif
+
 #ifndef CONFIG_HAL_BOARD
 #error CONFIG_HAL_BOARD must be defined to build ArduCopter
+#endif
+
+#ifdef __AVR_ATmega1280__
+#error ATmega1280 is not supported
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -60,15 +68,28 @@
 
 #define MAGNETOMETER ENABLED
 
-// low power cpus are not supported
+// disable some features for APM1/APM2
 #if HAL_CPU_CLASS < HAL_CPU_CLASS_75
- # error ArduCopter ver3.3 and higher is not supported on APM1, APM2 boards
+ # warning ArduCopter ver3.3 and higher APM board support is deprecated
+ # define PARACHUTE DISABLED
+ # define AC_RALLY DISABLED
+ # define EPM_ENABLED DISABLED
+ # define CLI_ENABLED           DISABLED
+ # define FRSKY_TELEM_ENABLED   DISABLED
+ # define NAV_GUIDED            DISABLED
 #endif
 
-// run at 400Hz on all systems
-# define MAIN_LOOP_RATE    400
-# define MAIN_LOOP_SECONDS 0.0025f
-# define MAIN_LOOP_MICROS  2500
+#if HAL_CPU_CLASS < HAL_CPU_CLASS_75 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+ // low power CPUs (APM1, APM2 and SITL)
+ # define MAIN_LOOP_RATE    100
+ # define MAIN_LOOP_SECONDS 0.01
+ # define MAIN_LOOP_MICROS  10000
+#else
+ // high power CPUs (Flymaple, PX4, Pixhawk, VRBrain)
+ # define MAIN_LOOP_RATE    400
+ # define MAIN_LOOP_SECONDS 0.0025f
+ # define MAIN_LOOP_MICROS  2500
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // FRAME_CONFIG
@@ -125,10 +146,35 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// ADC Enable - used to eliminate for systems which don't have ADC.
+//
+#ifndef CONFIG_ADC
+ # if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+  #   define CONFIG_ADC ENABLED
+ # else
+  #   define CONFIG_ADC DISABLED
+ # endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 // PWM control
 // default RC speed in Hz
 #ifndef RC_FAST_SPEED
    #   define RC_FAST_SPEED 490
+#endif
+
+////////////////////////////////////////////////////////
+// LED and IO Pins
+//
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -270,8 +316,14 @@
 #endif
 
 // expected magnetic field strength.  pre-arm checks will fail if 50% higher or lower than this value
-#ifndef COMPASS_MAGFIELD_EXPECTED
- #define COMPASS_MAGFIELD_EXPECTED      530        // pre arm will fail if mag field > 874 or < 185
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ #ifndef COMPASS_MAGFIELD_EXPECTED
+  # define COMPASS_MAGFIELD_EXPECTED     330        // pre arm will fail if mag field > 544 or < 115
+ #endif
+#else // PX4, SITL
+ #ifndef COMPASS_MAGFIELD_EXPECTED
+  #define COMPASS_MAGFIELD_EXPECTED      530        // pre arm will fail if mag field > 874 or < 185
+ #endif
 #endif
 
 // max compass offset length (i.e. sqrt(offs_x^2+offs_y^2+offs_Z^2))
@@ -279,7 +331,7 @@
  #ifndef COMPASS_OFFSETS_MAX
   # define COMPASS_OFFSETS_MAX          600         // PX4 onboard compass has high offsets
  #endif
-#else   // SITL, FLYMAPLE, etc
+#else   // APM1, APM2, SITL, FLYMAPLE, etc
  #ifndef COMPASS_OFFSETS_MAX
   # define COMPASS_OFFSETS_MAX          500
  #endif
@@ -654,8 +706,19 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
-// Default logging bitmask
-#ifndef DEFAULT_LOG_BITMASK
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+ // APM1 & APM2 default logging
+ # define DEFAULT_LOG_BITMASK \
+    MASK_LOG_ATTITUDE_MED | \
+    MASK_LOG_GPS | \
+    MASK_LOG_PM | \
+    MASK_LOG_CTUN | \
+    MASK_LOG_NTUN | \
+    MASK_LOG_RCIN | \
+    MASK_LOG_CMD | \
+    MASK_LOG_CURRENT
+#else
+ // PX4, Pixhawk, FlyMaple default logging
  # define DEFAULT_LOG_BITMASK \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \

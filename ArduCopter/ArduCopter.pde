@@ -221,7 +221,11 @@ static void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 ////////////////////////////////////////////////////////////////////////////////
 // Dataflash
 ////////////////////////////////////////////////////////////////////////////////
-#if defined(HAL_BOARD_LOG_DIRECTORY)
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+static DataFlash_APM2 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
+static DataFlash_APM1 DataFlash;
+#elif defined(HAL_BOARD_LOG_DIRECTORY)
 static DataFlash_File DataFlash(HAL_BOARD_LOG_DIRECTORY);
 #else
 static DataFlash_Empty DataFlash;
@@ -258,6 +262,10 @@ static AP_Int8 *flight_modes = &g.flight_mode1;
 static AP_Baro barometer;
 
 static Compass compass;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+AP_ADC_ADS7844 apm1_adc;
+#endif
 
 AP_InertialSensor ins;
 
@@ -582,7 +590,11 @@ static float G_Dt = 0.02;
 ////////////////////////////////////////////////////////////////////////////////
 // Inertial Navigation
 ////////////////////////////////////////////////////////////////////////////////
+#if AP_AHRS_NAVEKF_AVAILABLE
 static AP_InertialNav_NavEKF inertial_nav(ahrs);
+#else
+static AP_InertialNav inertial_nav(ahrs, barometer);
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Attitude, Position and Waypoint navigation objects
@@ -618,7 +630,7 @@ static uint32_t rtl_loiter_start_time;
 // Used to exit the roll and pitch auto trim function
 static uint8_t auto_trim_counter;
 
-// Reference to the relay object
+// Reference to the relay object (APM1 -> PORTL 2) (APM2 -> PORTB 7)
 static AP_Relay relay;
 
 // handle repeated servo and relay events
