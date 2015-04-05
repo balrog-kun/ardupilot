@@ -164,6 +164,18 @@
 #endif
 
 ////////////////////////////////////////////////////////
+// ESC communication protocol
+#ifndef CONFIG_ESC_PROTO
+ # define CONFIG_ESC_PROTO CONFIG_ESC_PWM
+#endif
+
+////////////////////////////////////////////////////////
+// Motor pole count for RPM calculation from ESC feedback (optional)
+#ifndef CONFIG_POLE_COUNT
+ # define CONFIG_POLE_COUNT 14
+#endif
+
+////////////////////////////////////////////////////////
 // LED and IO Pins
 //
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1

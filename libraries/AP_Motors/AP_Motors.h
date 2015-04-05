@@ -15,5 +15,6 @@
 #include "AP_MotorsSingle.h"
 #include "AP_MotorsCoax.h"
 #include "AP_Actuator_PWM.h"
+#include "AP_Actuator_I2C_SimonK.h"
 
 #endif // __AP_MOTORS_H__

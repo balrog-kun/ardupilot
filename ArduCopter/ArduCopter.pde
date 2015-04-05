@@ -430,10 +430,18 @@ static struct {
  #error Unrecognised frame type
 #endif
 
+#if CONFIG_ESC_PROTO == CONFIG_ESC_PWM
 static AP_Actuator_PWM output1(CH_1);
 static AP_Actuator_PWM output2(CH_2);
 static AP_Actuator_PWM output3(CH_3);
 static AP_Actuator_PWM output4(CH_4);
+#elif CONFIG_ESC_PROTO == CONFIG_ESC_I2C
+#define MOTOR_ID_BASE	0x29	/* ESC default base addr */
+static AP_Actuator_I2C_SimonK output1(MOTOR_ID_BASE + 0, CONFIG_POLE_COUNT);
+static AP_Actuator_I2C_SimonK output2(MOTOR_ID_BASE + 1, CONFIG_POLE_COUNT);
+static AP_Actuator_I2C_SimonK output3(MOTOR_ID_BASE + 2, CONFIG_POLE_COUNT);
+static AP_Actuator_I2C_SimonK output4(MOTOR_ID_BASE + 3, CONFIG_POLE_COUNT);
+#endif
 static AP_Actuator_PWM output5(CH_5);
 static AP_Actuator_PWM output6(CH_6);
 static AP_Actuator_PWM output7(CH_7);

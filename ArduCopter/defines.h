@@ -79,6 +79,10 @@ enum aux_sw_func {
 #define SINGLE_FRAME 8
 #define COAX_FRAME 9
 
+// ESC communication protocol -- possible CONFIG_ESC_PROTO values
+#define CONFIG_ESC_PWM 0
+#define CONFIG_ESC_I2C 1
+
 // Internal defines, don't edit and expect things to work
 // -------------------------------------------------------
 
